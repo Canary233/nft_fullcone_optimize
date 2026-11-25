@@ -1,0 +1,37 @@
+--- a/src/nf_nat_fullcone.c
++++ b/src/nf_nat_fullcone.c
+@@ -1167,6 +1167,16 @@
+ 		return ret;
+ 	}
+ 
++	/*
++	 * Established conntracks are already handled by the conntrack NAT core:
++	 * nf_nat_setup_info() returns immediately for them.  Running the
++	 * mapping lookup and add_original_tuple_to_mapping() anyway takes the
++	 * global fullcone spinlock and does an atomic kmalloc() for every
++	 * packet, so only do the work when the conntrack is first set up.
++	 */
++	if (nf_ct_is_confirmed(ct))
++		return ret;
++
+ 	if (nfproto == NFPROTO_IPV4) {
+ 		ip = (ct_tuple_origin->dst).u3.ip;
+ 	} else if (nfproto == NFPROTO_IPV6) {
+@@ -1301,6 +1311,17 @@
+ 	zone = nf_ct_zone(ct);
+ 
+ 	ct_tuple_origin = &(ct->tuplehash[IP_CT_DIR_ORIGINAL].tuple);
++
++	/*
++	 * Established conntracks are already handled by the conntrack NAT core:
++	 * nf_nat_setup_info() returns immediately for them.  Running the
++	 * mapping lookup and add_original_tuple_to_mapping() anyway takes the
++	 * global fullcone spinlock and does an atomic kmalloc() for every
++	 * packet, so only do the work when the conntrack is first set up.
++	 */
++	if (nf_ct_is_confirmed(ct))
++		return ret;
++
+ 	protonum = (ct_tuple_origin->dst).protonum;
+ 
+ 	if (range->flags & NF_NAT_RANGE_MAP_IPS) {
